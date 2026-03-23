@@ -7,10 +7,9 @@ A rich two-line status line for [Claude Code](https://docs.anthropic.com/en/docs
 
 ## Screenshot
 
-```
- Claude 4.6 Opus │ ~/my-project │  main *2 +1 ?3 ↑1
-ctx ▓▓▓▓░░░░░░ 35% │ 5h:12% │ 7d:3% │ $1.42 │ 12m30s
-```
+<p align="center">
+  <img src="screenshot.svg" alt="statusline screenshot" width="780">
+</p>
 
 ## What it shows
 
