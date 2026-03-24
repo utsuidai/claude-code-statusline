@@ -67,6 +67,19 @@ That's it. Restart Claude Code and the status line will appear.
 - Git (for git status segments)
 - A terminal with truecolor (24-bit) support and Unicode (e.g. iTerm2, Ghostty, WezTerm, Windows Terminal)
 
+## Testing
+
+```bash
+python3 -m pytest test_statusline.py -v
+```
+
+You can also preview the output manually:
+
+```bash
+echo '{"model":{"display_name":"Opus"},"workspace":{"current_dir":"/tmp"},"context_window":{"used_percentage":42},"cost":{"total_cost_usd":1.5,"total_duration_ms":300000},"rate_limits":{"five_hour":{"used_percentage":25,"resets_at":'$(($(date +%s)+7200))'},"seven_day":{"used_percentage":10,"resets_at":'$(($(date +%s)+86400))'}}}' \
+  | python3 statusline.py
+```
+
 ## How it works
 
 Claude Code pipes a JSON object to stdin containing session metadata (model, context window usage, cost, rate limits, etc.). This script reads that JSON and outputs ANSI-colored text that Claude Code renders as the status line.
