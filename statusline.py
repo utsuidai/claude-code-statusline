@@ -1,257 +1,290 @@
 #!/usr/bin/env python3
-"""Claude Code status line: rich two-line display."""
+"""Rich two-line status line for Claude Code."""
 
+import colorsys
 import json
 import os
 import subprocess
 import sys
 import time
 
+# ── ANSI primitives ──────────────────────────────────────────────
 
-def _ansi(code: str, text: str) -> str:
-    return f"\x1b[{code}m{text}\x1b[0m"
+ESC = "\x1b"
+RST = f"{ESC}[0m"
+
+
+def _sgr(code: str, text: str) -> str:
+    return f"{ESC}[{code}m{text}{RST}"
 
 
 def bold(text: str) -> str:
-    return _ansi("1", text)
+    return _sgr("1", text)
 
 
-def dim(text: str) -> str:
-    return _ansi("2", text)
+def faint(text: str) -> str:
+    return _sgr("2", text)
 
 
-def fg(color: int, text: str) -> str:
-    return _ansi(f"38;5;{color}", text)
+def color256(n: int, text: str) -> str:
+    return _sgr(f"38;5;{n}", text)
 
 
-def bold_fg(color: int, text: str) -> str:
-    return _ansi(f"1;38;5;{color}", text)
+def color256_bold(n: int, text: str) -> str:
+    return _sgr(f"1;38;5;{n}", text)
 
 
-MAGENTA = 205
-CYAN = 81
-GREEN = 82
-YELLOW = 220
-RED = 196
-GRAY = 243
-WHITE = 255
-
-BLOCKS = " ▏▎▍▌▋▊▉█"
-_DARK_BG = "\x1b[48;2;50;50;50m"
-_RESET = "\x1b[0m"
-_HOME = os.path.expanduser("~")
-_MODE_COLORS = {"NORMAL": CYAN, "INSERT": GREEN, "VISUAL": MAGENTA}
+def truecolor_fg(r: int, g: int, b: int, text: str) -> str:
+    return f"{ESC}[38;2;{r};{g};{b}m{text}{RST}"
 
 
-def gradient(pct: float) -> str:
-    """Return truecolor ANSI escape for green→yellow→red gradient."""
-    pct = max(0, min(100, pct))
-    if pct < 50:
-        r = int(pct * 5.1)
-        return f"\x1b[38;2;{r};200;80m"
+def truecolor_bg(r: int, g: int, b: int, text: str) -> str:
+    return f"{ESC}[48;2;{r};{g};{b}m{text}{RST}"
+
+
+# ── Palette (256-color indices) ──────────────────────────────────
+
+C_MODEL = 205
+C_BRANCH = 81
+C_CLEAN = 82
+C_WARN = 220
+C_ALERT = 196
+C_MUTED = 243
+C_TEXT = 255
+
+VIM_PALETTE = {"NORMAL": C_BRANCH, "INSERT": C_CLEAN, "VISUAL": C_MODEL}
+
+# ── Pre-computed constants ───────────────────────────────────────
+
+_TILDE = os.path.expanduser("~")
+_BAR_TICKS = " ▏▎▍▌▋▊▉█"
+_EMPTY_BG = (50, 50, 50)
+
+
+# ── Color interpolation via HSL ──────────────────────────────────
+
+def _severity_rgb(ratio: float) -> tuple[int, int, int]:
+    """Map 0.0–1.0 severity to an RGB tuple via HSL hue rotation.
+
+    Hue sweeps from 120° (green) through 60° (yellow) to 0° (red).
+    Saturation 0.85, lightness 0.55 keeps colours vibrant on dark backgrounds.
+    """
+    ratio = max(0.0, min(1.0, ratio))
+    hue = (1.0 - ratio) * (120.0 / 360.0)  # 0.333 → 0.0
+    r, g, b = colorsys.hls_to_rgb(hue, 0.55, 0.85)
+    return int(r * 255), int(g * 255), int(b * 255)
+
+
+def tint(pct: float, text: str) -> str:
+    """Colour *text* according to a 0–100 severity percentage."""
+    if pct <= 0:
+        return faint(text)
+    r, g, b = _severity_rgb(pct / 100)
+    return truecolor_fg(r, g, b, text)
+
+
+# ── Gauge rendering ──────────────────────────────────────────────
+
+def gauge(pct: float, cols: int = 10) -> str:
+    """Render a fractional-block gauge with severity colouring."""
+    pct = max(0.0, min(100.0, pct))
+    if pct <= 0:
+        return blank_gauge(cols)
+
+    span = pct * cols / 100
+    whole = int(span)
+    part = int((span - whole) * 8)
+
+    lit = "█" * whole
+    if whole < cols:
+        lit += _BAR_TICKS[part]
+        gap = cols - whole - 1
     else:
-        g = int(200 - (pct - 50) * 4)
-        return f"\x1b[38;2;255;{max(g, 0)};60m"
+        gap = 0
+
+    r, g, b = _severity_rgb(pct / 100)
+    head = f"{ESC}[38;2;{r};{g};{b}m{lit}{RST}"
+    tail = truecolor_bg(*_EMPTY_BG, " " * gap) if gap else ""
+    return head + tail
 
 
-def gradient_text(pct: float, text: str) -> str:
-    """Apply truecolor gradient to text, matching the progress bar color."""
-    return gradient(pct) + text + _RESET
+def blank_gauge(cols: int = 6) -> str:
+    return truecolor_bg(*_EMPTY_BG, " " * cols)
 
 
-def progress_bar(pct: float, width: int = 10) -> str:
-    """Draw a fine-grained progress bar with truecolor gradient."""
-    pct = max(0, min(100, pct))
-    filled = pct * width / 100
-    full = int(filled)
-    frac = int((filled - full) * 8)
-    filled_str = "█" * full
-    if full < width:
-        filled_str += BLOCKS[frac]
-        empty = width - full - 1
-    else:
-        empty = 0
-    empty_str = f"{_DARK_BG}{' ' * empty}{_RESET}" if empty else ""
-    return gradient(pct) + filled_str + _RESET + empty_str
+# ── Formatters ───────────────────────────────────────────────────
+
+def compact_duration(ms: float) -> str:
+    secs = int(ms / 1000)
+    if secs < 60:
+        return f"{secs}s"
+    m, s = divmod(secs, 60)
+    if m < 60:
+        return f"{m}m{s:02d}s"
+    h, m = divmod(m, 60)
+    return f"{h}h{m:02d}m"
 
 
-def empty_bar(width: int = 6) -> str:
-    return f"{_DARK_BG}{' ' * width}{_RESET}"
-
-
-def format_duration(ms: float) -> str:
-    total_s = int(ms / 1000)
-    if total_s < 60:
-        return f"{total_s}s"
-    minutes = total_s // 60
-    seconds = total_s % 60
-    if minutes < 60:
-        return f"{minutes}m{seconds:02d}s"
-    hours = minutes // 60
-    minutes = minutes % 60
-    return f"{hours}h{minutes:02d}m"
-
-
-def format_reset(resets_at: float) -> str:
-    remaining = int(resets_at - time.time())
-    if remaining <= 0:
+def countdown(epoch: float) -> str:
+    left = int(epoch - time.time())
+    if left <= 0:
         return "now"
-    if remaining < 60:
-        return f"{remaining}s"
-    minutes = remaining // 60
-    if minutes < 60:
-        return f"{minutes}m"
-    hours = minutes // 60
-    minutes = minutes % 60
-    return f"{hours}h{minutes:02d}m"
+    if left < 60:
+        return f"{left}s"
+    m, _ = divmod(left, 60)
+    if m < 60:
+        return f"{m}m"
+    h, m = divmod(m, 60)
+    return f"{h}h{m:02d}m"
 
 
-def format_rate_segment(label: str, pct, resets_at) -> str:
-    if pct is not None:
-        s = gradient_text(pct, f"{label} ") + progress_bar(pct, 6) + " " + gradient_text(pct, f"{pct:.0f}%")
-        if resets_at is not None:
-            s += gradient_text(pct, f"({format_reset(resets_at)})")
-        return s
-    return dim(f"{label} ") + empty_bar(6) + " " + dim("--%")
+def abbrev_path(path: str) -> str:
+    return "~" + path[len(_TILDE):] if path.startswith(_TILDE) else path
 
 
-def shorten_path(path: str) -> str:
-    if path.startswith(_HOME):
-        return "~" + path[len(_HOME):]
-    return path
+# ── Rate-limit segment ───────────────────────────────────────────
+
+def rate_segment(tag: str, pct, resets_at) -> str:
+    if pct is None:
+        return faint(f"{tag} ") + blank_gauge(6) + " " + faint("--%")
+    s = tint(pct, f"{tag} ") + gauge(pct, 6) + " " + tint(pct, f"{pct:.0f}%")
+    if resets_at is not None:
+        s += tint(pct, f"({countdown(resets_at)})")
+    return s
 
 
-def get_git_info(cwd: str) -> str:
+# ── Git ──────────────────────────────────────────────────────────
+
+def git_summary(cwd: str) -> str:
     if not cwd or not os.path.isdir(cwd):
         return ""
 
-    # Single git call for branch, upstream, ahead/behind, and file status
     try:
-        r = subprocess.run(
+        proc = subprocess.run(
             ["git", "-C", cwd, "status", "--porcelain=v2", "--branch", "-unormal"],
             capture_output=True, text=True, timeout=2,
         )
-        if r.returncode != 0:
+        if proc.returncode != 0:
             return ""
     except Exception:
         return ""
 
-    branch = ""
-    ahead = 0
-    behind = 0
-    staged = 0
-    dirty = 0
-    untracked = 0
+    ref = ""
+    up_ahead = 0
+    up_behind = 0
+    n_staged = 0
+    n_modified = 0
+    n_untracked = 0
 
-    for line in r.stdout.splitlines():
-        if line.startswith("# branch.head "):
-            branch = line[14:]
-        elif line.startswith("# branch.ab "):
-            parts = line[12:].split()
-            if len(parts) >= 2:
-                ahead = int(parts[0][1:])
-                behind = int(parts[1][1:])
-        elif line[0] in "12u":
-            xy = line[2:4]
+    for ln in proc.stdout.splitlines():
+        if ln.startswith("# branch.head "):
+            ref = ln[14:]
+        elif ln.startswith("# branch.ab "):
+            tokens = ln[12:].split()
+            if len(tokens) >= 2:
+                up_ahead = int(tokens[0][1:])
+                up_behind = int(tokens[1][1:])
+        elif ln[0] in "12u":
+            xy = ln[2:4]
             if xy[0] in "MADRC":
-                staged += 1
+                n_staged += 1
             if xy[1] in "MD":
-                dirty += 1
-        elif line[0] == "?":
-            untracked += 1
+                n_modified += 1
+        elif ln[0] == "?":
+            n_untracked += 1
 
-    if branch == "(detached)":
+    if ref == "(detached)":
         try:
             h = subprocess.run(
                 ["git", "-C", cwd, "rev-parse", "--short", "HEAD"],
                 capture_output=True, text=True, timeout=2,
             )
-            branch = h.stdout.strip()[:7] if h.returncode == 0 else ""
+            ref = h.stdout.strip()[:7] if h.returncode == 0 else ""
         except Exception:
-            branch = ""
+            ref = ""
 
-    if not branch:
+    if not ref:
         return ""
 
-    result = [fg(CYAN, "\ue0a0 " + branch)]
+    chunks = [color256(C_BRANCH, "\ue0a0 " + ref)]
 
-    flags = ""
-    if dirty:
-        flags += fg(YELLOW, f" *{dirty}")
-    if staged:
-        flags += fg(GREEN, f" +{staged}")
-    if untracked:
-        flags += fg(RED, f" ?{untracked}")
-    result.append(flags)
+    indicators = ""
+    if n_modified:
+        indicators += color256(C_WARN, f" *{n_modified}")
+    if n_staged:
+        indicators += color256(C_CLEAN, f" +{n_staged}")
+    if n_untracked:
+        indicators += color256(C_ALERT, f" ?{n_untracked}")
+    chunks.append(indicators)
 
-    tokens = []
-    if ahead > 0:
-        tokens.append(fg(GREEN, f"↑{ahead}"))
-    if behind > 0:
-        tokens.append(fg(RED, f"↓{behind}"))
-    if tokens:
-        result.append(" " + " ".join(tokens))
+    arrows = []
+    if up_ahead > 0:
+        arrows.append(color256(C_CLEAN, f"↑{up_ahead}"))
+    if up_behind > 0:
+        arrows.append(color256(C_ALERT, f"↓{up_behind}"))
+    if arrows:
+        chunks.append(" " + " ".join(arrows))
 
-    return "".join(result)
+    return "".join(chunks)
+
+
+# ── Entrypoint ───────────────────────────────────────────────────
+
+def render(data: dict) -> str | None:
+    model_label = data.get("model", {}).get("display_name", "")
+    cwd = data.get("workspace", {}).get("current_dir", "")
+    ctx_used = data.get("context_window", {}).get("used_percentage", 0)
+
+    costs = data.get("cost", {})
+    usd = costs.get("total_cost_usd", 0)
+    elapsed_ms = costs.get("total_duration_ms", 0)
+
+    limits = data.get("rate_limits", {})
+    h5_pct = limits.get("five_hour", {}).get("used_percentage", None)
+    h5_rst = limits.get("five_hour", {}).get("resets_at", None)
+    d7_pct = limits.get("seven_day", {}).get("used_percentage", None)
+    d7_rst = limits.get("seven_day", {}).get("resets_at", None)
+
+    vim = data.get("vim", {}).get("mode", "")
+    wt = data.get("worktree", {}).get("name", "")
+
+    div = faint(" │ ")
+
+    # ── upper row: identity + workspace ──
+    upper = []
+    if model_label:
+        upper.append(color256_bold(C_MODEL, f" {model_label}"))
+    if cwd:
+        upper.append(color256(C_TEXT, abbrev_path(cwd)))
+    vcs = git_summary(cwd)
+    if vcs:
+        upper.append(vcs)
+    if wt:
+        upper.append(color256(C_WARN, f"⊞ {wt}"))
+    if vim:
+        vc = VIM_PALETTE.get(vim.upper(), C_TEXT)
+        upper.append(color256_bold(vc, f"[{vim.upper()}]"))
+
+    # ── lower row: metrics ──
+    lower = []
+    lower.append(tint(ctx_used, "ctx ") + gauge(ctx_used) + " " + tint(ctx_used, f"{ctx_used:.0f}%"))
+    lower.append(rate_segment("5h", h5_pct, h5_rst))
+    lower.append(rate_segment("7d", d7_pct, d7_rst))
+    lower.append(color256(C_TEXT, f"${usd:.2f}") if usd > 0 else faint("$--.--"))
+    lower.append(faint(compact_duration(elapsed_ms)) if elapsed_ms > 0 else faint("--:--"))
+
+    rows = [r for r in [div.join(upper), div.join(lower)] if r]
+    return "\n".join(rows) if rows else None
 
 
 def main():
     try:
-        data = json.load(sys.stdin)
+        payload = json.load(sys.stdin)
     except (json.JSONDecodeError, EOFError):
         return
-
-    model_name = data.get("model", {}).get("display_name", "")
-    cwd = data.get("workspace", {}).get("current_dir", "")
-    ctx_pct = data.get("context_window", {}).get("used_percentage", 0)
-    cost_data = data.get("cost", {})
-    total_cost = cost_data.get("total_cost_usd", 0)
-    duration_ms = cost_data.get("total_duration_ms", 0)
-    rate = data.get("rate_limits", {})
-    r5h = rate.get("five_hour", {}).get("used_percentage", None)
-    r5h_reset = rate.get("five_hour", {}).get("resets_at", None)
-    r7d = rate.get("seven_day", {}).get("used_percentage", None)
-    r7d_reset = rate.get("seven_day", {}).get("resets_at", None)
-    vim_mode = data.get("vim", {}).get("mode", "")
-    wt_name = data.get("worktree", {}).get("name", "")
-
-    sep = dim(" │ ")
-
-    # Line 1
-    line1_parts = []
-    if model_name:
-        line1_parts.append(bold_fg(MAGENTA, f" {model_name}"))
-    if cwd:
-        line1_parts.append(fg(WHITE, shorten_path(cwd)))
-    git_info = get_git_info(cwd)
-    if git_info:
-        line1_parts.append(git_info)
-    if wt_name:
-        line1_parts.append(fg(YELLOW, f"⊞ {wt_name}"))
-    if vim_mode:
-        c = _MODE_COLORS.get(vim_mode.upper(), WHITE)
-        line1_parts.append(bold_fg(c, f"[{vim_mode.upper()}]"))
-
-    # Line 2
-    line2_parts = []
-    bar = progress_bar(ctx_pct)
-    line2_parts.append(gradient_text(ctx_pct, "ctx ") + bar + " " + gradient_text(ctx_pct, f"{ctx_pct:.0f}%"))
-    line2_parts.append(format_rate_segment("5h", r5h, r5h_reset))
-    line2_parts.append(format_rate_segment("7d", r7d, r7d_reset))
-
-    if total_cost > 0:
-        line2_parts.append(fg(WHITE, f"${total_cost:.2f}"))
-    else:
-        line2_parts.append(dim("$--.--"))
-
-    if duration_ms > 0:
-        line2_parts.append(dim(format_duration(duration_ms)))
-    else:
-        line2_parts.append(dim("--:--"))
-
-    lines = [l for l in [sep.join(line1_parts), sep.join(line2_parts)] if l]
-    if lines:
-        print("\n".join(lines))
+    output = render(payload)
+    if output:
+        print(output)
 
 
 if __name__ == "__main__":
