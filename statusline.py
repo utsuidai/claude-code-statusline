@@ -39,8 +39,22 @@ GRAY = 243
 WHITE = 255
 
 
+BLOCKS = " ▏▎▍▌▋▊▉█"
+
+
+def gradient(pct: float) -> str:
+    """Return truecolor ANSI escape for green→yellow→red gradient."""
+    pct = max(0, min(100, pct))
+    if pct < 50:
+        r = int(pct * 5.1)
+        return f"\x1b[38;2;{r};200;80m"
+    else:
+        g = int(200 - (pct - 50) * 4)
+        return f"\x1b[38;2;255;{max(g, 0)};60m"
+
+
 def colorize_pct(pct: float) -> int:
-    """Return color based on percentage threshold."""
+    """Return 256-color based on percentage threshold (for text labels)."""
     if pct < 50:
         return GREEN
     elif pct < 80:
@@ -49,12 +63,19 @@ def colorize_pct(pct: float) -> int:
 
 
 def progress_bar(pct: float, width: int = 10) -> str:
-    """Draw a progress bar with ▓░ characters."""
-    filled = int(pct / 100 * width)
-    filled = max(0, min(width, filled))
-    color = colorize_pct(pct)
-    bar = fg(color, "▓" * filled) + dim("░" * (width - filled))
-    return bar
+    """Draw a fine-grained progress bar with truecolor gradient."""
+    pct = max(0, min(100, pct))
+    filled = pct * width / 100
+    full = int(filled)
+    frac = int((filled - full) * 8)
+    filled_str = "█" * full
+    if full < width:
+        filled_str += BLOCKS[frac]
+        empty = width - full - 1
+    else:
+        empty = 0
+    empty_str = f"\x1b[48;2;50;50;50m{' ' * empty}\x1b[0m" if empty else ""
+    return gradient(pct) + filled_str + "\x1b[0m" + empty_str
 
 
 def format_duration(ms: float) -> str:
@@ -222,7 +243,7 @@ def main():
             r5h_str += dim(f"({format_reset(r5h_reset)})")
         line2_parts.append(r5h_str)
     else:
-        line2_parts.append(dim("5h ") + dim("░" * 6) + " " + dim("--%"))
+        line2_parts.append(dim("5h ") + "\x1b[48;2;50;50;50m      \x1b[0m" + " " + dim("--%"))
     if r7d is not None:
         c7 = colorize_pct(r7d)
         r7d_str = dim("7d ") + progress_bar(r7d, 6) + " " + fg(c7, f"{r7d:.0f}%")
@@ -230,7 +251,7 @@ def main():
             r7d_str += dim(f"({format_reset(r7d_reset)})")
         line2_parts.append(r7d_str)
     else:
-        line2_parts.append(dim("7d ") + dim("░" * 6) + " " + dim("--%"))
+        line2_parts.append(dim("7d ") + "\x1b[48;2;50;50;50m      \x1b[0m" + " " + dim("--%"))
 
     # Cost (grayed out when zero/unavailable)
     if total_cost > 0:
