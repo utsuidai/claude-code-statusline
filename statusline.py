@@ -214,23 +214,23 @@ def main():
         dim("ctx ") + bar + " " + fg(ctx_color, f"{ctx_pct:.0f}%")
     )
 
-    # Rate limits with reset countdown (grayed out when unavailable)
+    # Rate limits with progress bar and reset countdown
     if r5h is not None:
         c5 = colorize_pct(r5h)
-        r5h_str = fg(c5, f"5h:{r5h:.0f}%")
+        r5h_str = dim("5h ") + progress_bar(r5h, 6) + " " + fg(c5, f"{r5h:.0f}%")
         if r5h_reset is not None:
             r5h_str += dim(f"({format_reset(r5h_reset)})")
         line2_parts.append(r5h_str)
     else:
-        line2_parts.append(dim("5h:--"))
+        line2_parts.append(dim("5h ") + dim("░" * 6) + " " + dim("--%"))
     if r7d is not None:
         c7 = colorize_pct(r7d)
-        r7d_str = fg(c7, f"7d:{r7d:.0f}%")
+        r7d_str = dim("7d ") + progress_bar(r7d, 6) + " " + fg(c7, f"{r7d:.0f}%")
         if r7d_reset is not None:
             r7d_str += dim(f"({format_reset(r7d_reset)})")
         line2_parts.append(r7d_str)
     else:
-        line2_parts.append(dim("7d:--"))
+        line2_parts.append(dim("7d ") + dim("░" * 6) + " " + dim("--%"))
 
     # Cost (grayed out when zero/unavailable)
     if total_cost > 0:
