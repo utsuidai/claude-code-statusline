@@ -34,7 +34,7 @@ A rich two-line status line for [Claude Code](https://docs.anthropic.com/en/docs
 | Cost | Total session cost in USD |
 | Duration | Total session duration |
 
-Each segment (label, progress bar, percentage, reset countdown) uses the same truecolor (24-bit RGB) gradient that smoothly shifts from green → yellow → red as usage increases. Progress bars use Unicode block elements (`▏▎▍▌▋▊▉█`) for ~1% precision.
+Each segment (label, progress bar, percentage, reset countdown) uses the same truecolor gradient via HSL hue interpolation (120° green → 60° yellow → 0° red). Progress bars use Unicode block elements (`▏▎▍▌▋▊▉█`) for ~1% precision.
 
 ## Setup
 
@@ -66,6 +66,19 @@ That's it. Restart Claude Code and the status line will appear.
 - Python 3.10+
 - Git (for git status segments)
 - A terminal with truecolor (24-bit) support and Unicode (e.g. iTerm2, Ghostty, WezTerm, Windows Terminal)
+
+## Testing
+
+```bash
+python3 -m pytest test_statusline.py -v
+```
+
+You can also preview the output manually:
+
+```bash
+echo '{"model":{"display_name":"Opus"},"workspace":{"current_dir":"/tmp"},"context_window":{"used_percentage":42},"cost":{"total_cost_usd":1.5,"total_duration_ms":300000},"rate_limits":{"five_hour":{"used_percentage":25,"resets_at":'$(($(date +%s)+7200))'},"seven_day":{"used_percentage":10,"resets_at":'$(($(date +%s)+86400))'}}}' \
+  | python3 statusline.py
+```
 
 ## How it works
 
