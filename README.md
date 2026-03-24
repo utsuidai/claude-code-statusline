@@ -34,7 +34,7 @@ A rich two-line status line for [Claude Code](https://docs.anthropic.com/en/docs
 | Cost | Total session cost in USD |
 | Duration | Total session duration |
 
-Each segment (label, progress bar, percentage, reset countdown) uses the same truecolor (24-bit RGB) gradient that smoothly shifts from green → yellow → red as usage increases. Progress bars use Unicode block elements (`▏▎▍▌▋▊▉█`) for ~1% precision.
+Each segment (label, progress bar, percentage, reset countdown) uses the same truecolor gradient via HSL hue interpolation (120° green → 60° yellow → 0° red). Progress bars use Unicode block elements (`▏▎▍▌▋▊▉█`) for ~1% precision.
 
 ## Setup
 
