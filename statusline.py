@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 
 # ANSI color helpers
@@ -65,6 +66,21 @@ def format_duration(ms: float) -> str:
     seconds = total_s % 60
     if minutes < 60:
         return f"{minutes}m{seconds:02d}s"
+    hours = minutes // 60
+    minutes = minutes % 60
+    return f"{hours}h{minutes:02d}m"
+
+
+def format_reset(resets_at: float) -> str:
+    """Format seconds until reset as compact string."""
+    remaining = int(resets_at - time.time())
+    if remaining <= 0:
+        return "now"
+    if remaining < 60:
+        return f"{remaining}s"
+    minutes = remaining // 60
+    if minutes < 60:
+        return f"{minutes}m"
     hours = minutes // 60
     minutes = minutes % 60
     return f"{hours}h{minutes:02d}m"
@@ -155,7 +171,9 @@ def main():
     duration_ms = cost_data.get("total_duration_ms", 0)
     rate = data.get("rate_limits", {})
     r5h = rate.get("five_hour", {}).get("used_percentage", None)
+    r5h_reset = rate.get("five_hour", {}).get("resets_at", None)
     r7d = rate.get("seven_day", {}).get("used_percentage", None)
+    r7d_reset = rate.get("seven_day", {}).get("resets_at", None)
     vim = data.get("vim", {})
     vim_mode = vim.get("mode", "") if vim else ""
     worktree = data.get("worktree", {})
@@ -196,15 +214,21 @@ def main():
         dim("ctx ") + bar + " " + fg(ctx_color, f"{ctx_pct:.0f}%")
     )
 
-    # Rate limits (grayed out when unavailable)
+    # Rate limits with reset countdown (grayed out when unavailable)
     if r5h is not None:
         c5 = colorize_pct(r5h)
-        line2_parts.append(fg(c5, f"5h:{r5h:.0f}%"))
+        r5h_str = fg(c5, f"5h:{r5h:.0f}%")
+        if r5h_reset is not None:
+            r5h_str += dim(f"({format_reset(r5h_reset)})")
+        line2_parts.append(r5h_str)
     else:
         line2_parts.append(dim("5h:--"))
     if r7d is not None:
         c7 = colorize_pct(r7d)
-        line2_parts.append(fg(c7, f"7d:{r7d:.0f}%"))
+        r7d_str = fg(c7, f"7d:{r7d:.0f}%")
+        if r7d_reset is not None:
+            r7d_str += dim(f"({format_reset(r7d_reset)})")
+        line2_parts.append(r7d_str)
     else:
         line2_parts.append(dim("7d:--"))
 
