@@ -54,12 +54,9 @@ def gradient(pct: float) -> str:
         return f"\x1b[38;2;255;{max(g, 0)};60m"
 
 
-def colorize_pct(pct: float) -> int:
-    if pct < 50:
-        return GREEN
-    elif pct < 80:
-        return YELLOW
-    return RED
+def gradient_text(pct: float, text: str) -> str:
+    """Apply truecolor gradient to text, matching the progress bar color."""
+    return gradient(pct) + text + _RESET
 
 
 def progress_bar(pct: float, width: int = 10) -> str:
@@ -111,8 +108,7 @@ def format_reset(resets_at: float) -> str:
 
 def format_rate_segment(label: str, pct, resets_at) -> str:
     if pct is not None:
-        c = colorize_pct(pct)
-        s = dim(f"{label} ") + progress_bar(pct, 6) + " " + fg(c, f"{pct:.0f}%")
+        s = dim(f"{label} ") + progress_bar(pct, 6) + " " + gradient_text(pct, f"{pct:.0f}%")
         if resets_at is not None:
             s += dim(f"({format_reset(resets_at)})")
         return s
@@ -239,8 +235,7 @@ def main():
     # Line 2
     line2_parts = []
     bar = progress_bar(ctx_pct)
-    ctx_color = colorize_pct(ctx_pct)
-    line2_parts.append(dim("ctx ") + bar + " " + fg(ctx_color, f"{ctx_pct:.0f}%"))
+    line2_parts.append(dim("ctx ") + bar + " " + gradient_text(ctx_pct, f"{ctx_pct:.0f}%"))
     line2_parts.append(format_rate_segment("5h", r5h, r5h_reset))
     line2_parts.append(format_rate_segment("7d", r7d, r7d_reset))
 
