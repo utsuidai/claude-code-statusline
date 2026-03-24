@@ -2,7 +2,7 @@
 
 A rich two-line status line for [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
-![Python 3](https://img.shields.io/badge/python-3.8%2B-blue)
+![Python 3](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
 ## Screenshot
@@ -63,7 +63,7 @@ That's it. Restart Claude Code and the status line will appear.
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.10+
 - Git (for git status segments)
 - A terminal with truecolor (24-bit) support and Unicode (e.g. iTerm2, Ghostty, WezTerm, Windows Terminal)
 
