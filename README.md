@@ -30,7 +30,7 @@ A rich two-line status line for [Claude Code](https://docs.anthropic.com/en/docs
 | Segment | Description |
 |---------|-------------|
 | Context | Visual progress bar with percentage |
-| 5h / 7d | Rate limit usage (5-hour and 7-day windows) |
+| 5h / 7d | Rate limit usage with countdown to reset, e.g. `5h:12%(3h42m)` |
 | Cost | Total session cost in USD |
 | Duration | Total session duration |
 

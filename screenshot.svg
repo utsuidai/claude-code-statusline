@@ -53,17 +53,17 @@
   <!-- Separator -->
   <text x="190" y="94" fill="#565f89" class="dim"> │ </text>
   <!-- 5h rate -->
-  <text x="213" y="94" fill="#9ece6a">5h:12%</text>
+  <text x="213" y="94" fill="#9ece6a">5h:12%</text><text x="270" y="94" fill="#565f89" class="dim">(3h42m)</text>
   <!-- Separator -->
-  <text x="273" y="94" fill="#565f89" class="dim"> │ </text>
+  <text x="325" y="94" fill="#565f89" class="dim"> │ </text>
   <!-- 7d rate -->
-  <text x="296" y="94" fill="#9ece6a">7d:3%</text>
+  <text x="348" y="94" fill="#9ece6a">7d:3%</text><text x="396" y="94" fill="#565f89" class="dim">(5d08h)</text>
   <!-- Separator -->
-  <text x="348" y="94" fill="#565f89" class="dim"> │ </text>
+  <text x="457" y="94" fill="#565f89" class="dim"> │ </text>
   <!-- Cost -->
-  <text x="371" y="94" fill="#c0caf5">$1.42</text>
+  <text x="480" y="94" fill="#c0caf5">$1.42</text>
   <!-- Separator -->
-  <text x="423" y="94" fill="#565f89" class="dim"> │ </text>
+  <text x="532" y="94" fill="#565f89" class="dim"> │ </text>
   <!-- Duration -->
-  <text x="446" y="94" fill="#565f89" class="dim">12m30s</text>
+  <text x="555" y="94" fill="#565f89" class="dim">12m30s</text>
 </svg>
