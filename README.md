@@ -29,12 +29,12 @@ A rich two-line status line for [Claude Code](https://docs.anthropic.com/en/docs
 
 | Segment | Description |
 |---------|-------------|
-| Context | Visual progress bar with percentage |
-| 5h / 7d | Rate limit progress bar with percentage and countdown to reset |
+| Context | Fine-grained progress bar with truecolor gradient |
+| 5h / 7d | Rate limit progress bar with truecolor gradient and countdown to reset |
 | Cost | Total session cost in USD |
 | Duration | Total session duration |
 
-Colors shift from green → yellow → red as usage increases.
+Progress bars use Unicode block elements (`▏▎▍▌▋▊▉█`) for ~1% precision and truecolor (24-bit RGB) gradients that smoothly shift from green → yellow → red as usage increases.
 
 ## Setup
 
@@ -65,7 +65,7 @@ That's it. Restart Claude Code and the status line will appear.
 
 - Python 3.8+
 - Git (for git status segments)
-- A terminal with 256-color support and Unicode
+- A terminal with truecolor (24-bit) support and Unicode (e.g. iTerm2, Ghostty, WezTerm, Windows Terminal)
 
 ## How it works
 
