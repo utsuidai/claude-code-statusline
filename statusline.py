@@ -108,9 +108,9 @@ def format_reset(resets_at: float) -> str:
 
 def format_rate_segment(label: str, pct, resets_at) -> str:
     if pct is not None:
-        s = dim(f"{label} ") + progress_bar(pct, 6) + " " + gradient_text(pct, f"{pct:.0f}%")
+        s = gradient_text(pct, f"{label} ") + progress_bar(pct, 6) + " " + gradient_text(pct, f"{pct:.0f}%")
         if resets_at is not None:
-            s += dim(f"({format_reset(resets_at)})")
+            s += gradient_text(pct, f"({format_reset(resets_at)})")
         return s
     return dim(f"{label} ") + empty_bar(6) + " " + dim("--%")
 
@@ -235,7 +235,7 @@ def main():
     # Line 2
     line2_parts = []
     bar = progress_bar(ctx_pct)
-    line2_parts.append(dim("ctx ") + bar + " " + gradient_text(ctx_pct, f"{ctx_pct:.0f}%"))
+    line2_parts.append(gradient_text(ctx_pct, "ctx ") + bar + " " + gradient_text(ctx_pct, f"{ctx_pct:.0f}%"))
     line2_parts.append(format_rate_segment("5h", r5h, r5h_reset))
     line2_parts.append(format_rate_segment("7d", r7d, r7d_reset))
 
