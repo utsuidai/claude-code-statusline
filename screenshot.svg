@@ -42,27 +42,27 @@
   <text x="515" y="62" fill="#9ece6a"> ↑1</text>
 
   <!-- Line 2 -->
-  <!-- Context: ctx ███▌       35% (truecolor gradient) -->
-  <text x="16" y="94" fill="#565f89" class="dim">ctx </text>
+  <!-- Context 35%: gradient rgb(178,200,80) — label, bar, text all same color -->
+  <text x="16" y="94" fill="rgb(178,200,80)">ctx </text>
   <text x="50" y="94" fill="rgb(178,200,80)">███▌</text>
   <rect x="82" y="82" width="48" height="16" rx="1" fill="rgb(50,50,50)"/>
   <text x="134" y="94" fill="rgb(178,200,80)"> 35%</text>
   <!-- Separator -->
   <text x="177" y="94" fill="#565f89" class="dim"> │ </text>
-  <!-- 5h: 5h ▋      12%(3h42m) -->
-  <text x="200" y="94" fill="#565f89" class="dim">5h </text>
+  <!-- 5h 12%: gradient rgb(61,200,80) — label, bar, text, reset all same color -->
+  <text x="200" y="94" fill="rgb(61,200,80)">5h </text>
   <text x="226" y="94" fill="rgb(61,200,80)">▋</text>
   <rect x="234" y="82" width="40" height="16" rx="1" fill="rgb(50,50,50)"/>
   <text x="278" y="94" fill="rgb(61,200,80)"> 12%</text>
-  <text x="316" y="94" fill="#565f89" class="dim">(3h42m)</text>
+  <text x="316" y="94" fill="rgb(61,200,80)">(3h42m)</text>
   <!-- Separator -->
   <text x="376" y="94" fill="#565f89" class="dim"> │ </text>
-  <!-- 7d: 7d ▏      3%(5d08h) -->
-  <text x="399" y="94" fill="#565f89" class="dim">7d </text>
+  <!-- 7d 3%: gradient rgb(15,200,80) — label, bar, text, reset all same color -->
+  <text x="399" y="94" fill="rgb(15,200,80)">7d </text>
   <text x="425" y="94" fill="rgb(15,200,80)">▏</text>
   <rect x="433" y="82" width="40" height="16" rx="1" fill="rgb(50,50,50)"/>
   <text x="477" y="94" fill="rgb(15,200,80)"> 3%</text>
-  <text x="507" y="94" fill="#565f89" class="dim">(5d08h)</text>
+  <text x="507" y="94" fill="rgb(15,200,80)">(5d08h)</text>
   <!-- Separator -->
   <text x="567" y="94" fill="#565f89" class="dim"> │ </text>
   <!-- Cost -->
