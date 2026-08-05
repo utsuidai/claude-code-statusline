@@ -103,7 +103,7 @@ def gauge(pct: float, cols: int = 10) -> str:
         gap = 0
 
     r, g, b = _severity_rgb(pct / 100)
-    head = f"{ESC}[38;2;{r};{g};{b}m{lit}{RST}"
+    head = truecolor_fg(r, g, b, lit)
     tail = truecolor_bg(*_EMPTY_BG, " " * gap) if gap else ""
     return head + tail
 
@@ -147,9 +147,10 @@ def abbrev_path(path: str) -> str:
 def rate_segment(tag: str, pct, resets_at) -> str:
     if pct is None:
         return faint(f"{tag} ") + blank_gauge(6) + " " + faint("--%")
-    s = tint(pct, f"{tag} ") + gauge(pct, 6) + " " + tint(pct, f"{pct:.0f}%")
+    fmt_pct = faint if pct <= 0 else lambda t: truecolor_fg(*_severity_rgb(pct / 100), t)
+    s = fmt_pct(f"{tag} ") + gauge(pct, 6) + " " + fmt_pct(f"{pct:.0f}%")
     if resets_at is not None:
-        s += tint(pct, f"({countdown(resets_at)})")
+        s += fmt_pct(f"({countdown(resets_at)})")
     return s
 
 
@@ -267,7 +268,8 @@ def render(data: dict) -> str | None:
 
     # ── lower row: metrics ──
     lower = []
-    lower.append(tint(ctx_used, "ctx ") + gauge(ctx_used) + " " + tint(ctx_used, f"{ctx_used:.0f}%"))
+    fmt_ctx = faint if ctx_used <= 0 else lambda t: truecolor_fg(*_severity_rgb(ctx_used / 100), t)
+    lower.append(fmt_ctx("ctx ") + gauge(ctx_used) + " " + fmt_ctx(f"{ctx_used:.0f}%"))
     lower.append(rate_segment("5h", h5_pct, h5_rst))
     lower.append(rate_segment("7d", d7_pct, d7_rst))
     lower.append(color256(C_TEXT, f"${usd:.2f}") if usd > 0 else faint("$--.--"))
